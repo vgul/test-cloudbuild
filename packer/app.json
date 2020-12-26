@@ -8,6 +8,7 @@
         "disk_type": "pd-ssd",
         "machine_type": "n1-standard-2",
         "communicator": "winrm",
+        "network_project_id": "ops-shared-vpc",
         "network": "ops-vpc1",
         "subnetwork": "testing-cloud-cd-us-west2",
         "tags": "packer-winrm",
