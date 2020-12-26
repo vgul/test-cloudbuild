@@ -3,7 +3,7 @@
       {
         "type": "googlecompute",
         "project_id": "ops-shared-vpc",
-        "source_image_family": "windows-2012",
+        "source_image_family": "windows-2016",
         "disk_size": "50",
         "disk_type": "pd-ssd",
         "machine_type": "n1-standard-2",
