@@ -21,7 +21,8 @@
         "zone": "us-west2-a",
         "image_storage_locations": ["us-west2"],
         "image_name": "app-{{timestamp}}",
-        "image_family": "app-base"
+        "image_family": "app-base",
+        "omit_external_ip": true
       }
     ],
     "provisioners": [
