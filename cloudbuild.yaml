@@ -1,0 +1,17 @@
+
+
+steps:
+  - name: gcr.io/${_PROJECT_ID}/packer
+    env:
+      - PROJECT_ID=${_PROJECT_ID}
+    args:
+      - build
+      - -force
+      - -var
+      - project_id=${_PROJECT_ID}
+      - 'packer/app.json'
+timeout: 1800s
+
+substitutions:
+  _PROJECT_ID: flow-testing-project
+
