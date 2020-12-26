@@ -21,8 +21,8 @@
         "image_storage_locations": ["us-west2"],
         "image_name": "app-{{timestamp}}",
         "image_family": "app-base",
-        "omit_external_ip": true,
-        "use_internal_ip": true
+        "omit_external_ip": false,
+        "use_internal_ip": false
       }
     ],
     "provisioners": [
