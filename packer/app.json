@@ -10,7 +10,7 @@
         "communicator": "winrm",
         "network_project_id": "ops-shared-vpc",
         "network": "ops-vpc1",
-        "subnetwork": "testing-cloud-cd-us-west2",
+        "subnetwork": "projects/ops-shared-vpc/regions/us-west2/subnetworks/testing-cloud-cd-us-west2",
         "tags": "packer-winrm",
         "winrm_username": "packer_user",
         "winrm_insecure": true,
