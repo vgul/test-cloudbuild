@@ -1,0 +1,99 @@
+{
+
+  "variables": {
+    "USER_NAME":         "build",
+    "BUCKET_NAME":       "smurthy_cbcd_installers",
+    "FOLDER_NAME":       "packer-20201230",
+                      
+    "SUBNETWORK":        "projects/ops-shared-vpc/regions/us-west2/subnetworks/testing-cloud-cd-us-west2",
+    "GCP_PROJECT":       "flow-testing-project",
+    "ZONE":              "us-west2-a",
+    "MACHINE_TYPE":      "e2-standard-8",
+    "NET_TAGS":          "flow-chronic3-us-west2",
+    "DISK_SIZE":         "24",
+    "IMAGE_FAMILY":      "windows-2012-r2",
+    "PREEMPTIBILITY":    "true",
+
+    "GIT_SSH_KEY":       "",
+
+    "USE_SSL":           "true",
+    "DEBUG_INIT_SCRIPT2": "& winrm set winrm/config/service @{AllowUnencrypted=\"true\"} & netsh advfirewall firewall add rule name=\"Open Port 5985\" dir=in action=allow protocol=TCP localport=5985",
+    "DEBUG_INIT_SCRIPT": ""
+  },
+
+
+  "builders": [
+    {
+      "type":                 "googlecompute",
+      "communicator":         "winrm",
+
+      "machine_type":         "{{ user `MACHINE_TYPE` }}",
+      "source_image_family":  "{{ user `IMAGE_FAMILY` }}",
+      "project_id":           "{{ user `GCP_PROJECT`  }}",
+      "zone":                 "{{ user `ZONE`         }}",
+      "subnetwork":           "{{ user `SUBNETWORK`   }}",
+      "tags":               [ "{{ user `NET_TAGS`     }}" ],
+      "disk_size":            "{{ user `DISK_SIZE`    }}",
+      "winrm_username":       "{{ user `USER_NAME`    }}",
+      "image_labels":  { 
+        "source-bucket":      "{{ user `BUCKET_NAME` }}",
+        "source-folder":      "{{ user `FOLDER_NAME` }}"
+      },
+
+      "winrm_insecure":        true,
+      "omit_external_ip":      true,
+      "use_internal_ip":       true,
+      "preemptible":          "{{ user `PREEMPTIBILITY` }}",
+
+      "winrm_use_ssl":        "{{ user `USER_SSL`     }}",
+
+      "metadata": {
+        "windows-startup-script-cmd": "winrm quickconfig -quiet & net user /add {{ user `USER_NAME` }}  & net localgroup administrators {{ user `USER_NAME` }} /add & winrm set winrm/config/service/auth @{Basic=\"true\"} {{ user `DEBUG_INIT_SCRIPT` }}"
+      }
+
+    }
+  ],
+
+
+
+  "provisioners": [
+
+    { "type": "shell-local",
+      "command": "echo 'WinPass: {{.WinRMPassword}}' | tee /tmp/winrmIp.txt # for debug. just save for RDP" },
+
+    { "type": "powershell",
+      "inline": [
+        "gsutil -m rsync gs://{{ user `BUCKET_NAME` }}/{{ user `FOLDER_NAME` }}/ .\\Downloads" ] },
+
+    { "type": "powershell",
+      "script": "scripts/Install-Java.ps1" },
+
+    { "type": "powershell",
+      "script": "scripts/Install-Maven.ps1" },
+
+    { "type": "powershell",
+      "script": "scripts/Install-NotepadPlusPlusDSC.ps1" },
+
+    { "type": "powershell",
+      "script": "scripts/Install-GitDSC.ps1" },
+
+    { "type": "powershell",
+      "script": "scripts/Install-ChromeDSC.ps1" },
+
+    { "type": "powershell",
+      "script": "scripts/Install-VimDSC.ps1" },
+
+    { "type": "powershell",
+      "inline": [ "# GCESysprep -no_shutdown ## some preparation ??" ] },
+
+    { "type": "powershell",
+      "inline": [
+        "# reload env vars",
+        "$env:Path = [System.Environment]::GetEnvironmentVariable(\"Path\",\"Machine\") + \";\" + [System.Environment]::GetEnvironmentVariable(\"Path\",\"User\") " ] },
+
+    { "type": "powershell",
+      "inline": [
+        "# Read-Host -Prompt \"Press any key to continue\" ## to debug" ] }
+	
+  ]
+}

@@ -8,9 +8,9 @@ steps:
       - build
       - -force
       - -var
-      - project_id=${_PROJECT_ID}
-      - 'packer/app.json'
-timeout: 1800s
+      - PROJECT_ID=${_PROJECT_ID}
+      - 'packer/build-win-image.json'
+timeout: 720s
 
 substitutions:
   _PROJECT_ID: flow-testing-project

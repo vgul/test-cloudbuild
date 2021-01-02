@@ -1,0 +1,21 @@
+
+
+Commad for debug run:
+
+  time PACKER_LOG=1 packer build -on-error=ask -debug ./data.json
+
+
+Files:
+
+  build-win-image.json - json data file for run
+
+
+Folders:
+
+  scripts              - subjects for provisioner
+  development          - tools for subj and testing ( remote run command(s) )
+
+
+Questions:
+  what kind of github authorization like 'runMethod-checkoutCode':
+  https://artemis.nimbus.beescloud.com/commander/link/workspaceFile/workspaces/chronic3build?jobStepId=98b5ef24-4bf6-11eb-bbcb-42010a1eb026&fileName=runMethod-checkoutCode-98b5ef24-4bf6-11eb-bbcb-42010a1eb026.log&jobName=commander-git-main-full-sqlserver2017.144978-202101010600&jobId=961bbc2a-4bf6-11eb-9d1c-42010a1eb026&diagCharEncoding=&resourceName=veng&completed=1
