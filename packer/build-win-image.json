@@ -32,7 +32,7 @@
       "project_id":           "{{ user `GCP_PROJECT`  }}",
       "zone":                 "{{ user `ZONE`         }}",
       "subnetwork":           "{{ user `SUBNETWORK`   }}",
-      "tags":               [ "{{ user `NET_TAGS`     }}", "packer_winrm" ],
+      "tags":               [ "{{ user `NET_TAGS`     }}", "packer-winrm" ],
       "disk_size":            "{{ user `DISK_SIZE`    }}",
       "winrm_username":       "{{ user `USER_NAME`    }}",
       "image_labels":  { 
