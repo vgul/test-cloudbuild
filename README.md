@@ -14,3 +14,8 @@ Useful commands:
 #  --member $CLOUD_BUILD_ACCOUNT \
 #  --role roles/editor
 
+TODO:
+  Try to use tag 'cd-artemis-us-west2'
+
+
+
