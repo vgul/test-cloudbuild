@@ -10,6 +10,7 @@ steps:
       - -var
       - PROJECT_ID=${_PROJECT_ID}
       - 'packer/build-win-image.json'
+      - -var
       - SUBNETWORK='default'
       - 'packer/build-win-image.json'
 timeout: 720s
