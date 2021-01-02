@@ -10,7 +10,7 @@
     "ZONE":              "us-west2-a",
     "MACHINE_TYPE":      "e2-standard-8",
     "NET_TAGS":          "flow-chronic3-us-west2",
-    "DISK_SIZE":         "24",
+    "DISK_SIZE":         "50",
     "IMAGE_FAMILY":      "windows-2012-r2",
     "PREEMPTIBILITY":    "true",
 
