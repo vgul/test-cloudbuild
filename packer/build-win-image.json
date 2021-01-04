@@ -2,14 +2,18 @@
 
   "variables": {
     "USER_NAME":         "build",
+
     "BUCKET_NAME":       "smurthy_cbcd_installers",
     "FOLDER_NAME":       "packer-20201230",
-                      
+
+    "NIMBUS_REPO":       "git@github.com:electric-cloud/nimbus.git",
+    "PURPOSE_LABEL":     "win-spec-test",
+
     "SUBNETWORK":        "projects/ops-shared-vpc/regions/us-west2/subnetworks/testing-cloud-cd-us-west2",
     "GCP_PROJECT":       "flow-testing-project",
     "ZONE":              "us-west2-a",
     "MACHINE_TYPE":      "e2-standard-8",
-    "NET_TAGS":          "flow-chronic3-us-west2",
+    "NET_TAGS":          "cd-artemis-us-west2",
     "DISK_SIZE":         "50",
     "IMAGE_FAMILY":      "windows-2012-r2",
     "PREEMPTIBILITY":    "true",
@@ -24,20 +28,25 @@
 
   "builders": [
     {
-      "type":                 "googlecompute",
-      "communicator":         "winrm",
+      "type":                    "googlecompute",
+      "communicator":            "winrm",
 
-      "machine_type":         "{{ user `MACHINE_TYPE` }}",
-      "source_image_family":  "{{ user `IMAGE_FAMILY` }}",
-      "project_id":           "{{ user `GCP_PROJECT`  }}",
-      "zone":                 "{{ user `ZONE`         }}",
-      "subnetwork":           "{{ user `SUBNETWORK`   }}",
-      "tags":               [ "packer-winrm" ],
-      "disk_size":            "{{ user `DISK_SIZE`    }}",
-      "winrm_username":       "{{ user `USER_NAME`    }}",
+      "machine_type":         "{{ user `MACHINE_TYPE`          }}",
+      "source_image_family":  "{{ user `IMAGE_FAMILY`          }}",
+      "project_id":           "{{ user `GCP_PROJECT`           }}",
+      "zone":                 "{{ user `ZONE`                  }}",
+      "subnetwork":           "{{ user `SUBNETWORK`            }}",
+      "tags":               [ "{{ user `NET_TAGS`              }}",
+                              "packer-winrm"                     ],
+      "disk_size":            "{{ user `DISK_SIZE`             }}",
+      "winrm_username":       "{{ user `USER_NAME`             }}",
+
+      "image_name":           "{{ user `PURPOSE_LABEL` }}-{{ isotime | clean_resource_name }}",
       "image_labels":  { 
-        "source-bucket":      "{{ user `BUCKET_NAME` }}",
-        "source-folder":      "{{ user `FOLDER_NAME` }}"
+        "source-bucket":      "{{ user `BUCKET_NAME`   }}",
+        "source-folder":      "{{ user `FOLDER_NAME`   }}",
+        "purpose":            "{{ user `PURPOSE_LABEL` }}",
+        "issued":             "{{ isotime }}"
       },
 
       "winrm_insecure":        true,
@@ -45,7 +54,7 @@
       "use_internal_ip":       true,
       "preemptible":          "{{ user `PREEMPTIBILITY` }}",
 
-      "winrm_use_ssl":        "{{ user `USER_SSL`     }}",
+      "winrm_use_ssl":        "{{ user `USE_SSL`     }}",
 
       "metadata": {
         "windows-startup-script-cmd": "winrm quickconfig -quiet & net user /add {{ user `USER_NAME` }}  & net localgroup administrators {{ user `USER_NAME` }} /add & winrm set winrm/config/service/auth @{Basic=\"true\"} {{ user `DEBUG_INIT_SCRIPT` }}"
@@ -56,10 +65,13 @@
 
 
 
+
+
+
   "provisioners": [
 
     { "type": "shell-local",
-      "command": "echo 'WinPass: {{.WinRMPassword}}' | tee /tmp/winrmIp.txt # for debug. just save for RDP" },
+      "command": "echo 'WinPass: {{.WinRMPassword}}' | tee /tmp/winrmIp.txt # for debug. just save" },
 
     { "type": "powershell",
       "inline": [
@@ -89,11 +101,39 @@
     { "type": "powershell",
       "inline": [
         "# reload env vars",
-        "$env:Path = [System.Environment]::GetEnvironmentVariable(\"Path\",\"Machine\") + \";\" + [System.Environment]::GetEnvironmentVariable(\"Path\",\"User\") " ] },
+        "# $env:Path = [System.Environment]::GetEnvironmentVariable(\"Path\",\"Machine\") + \";\" + [System.Environment]::GetEnvironmentVariable(\"Path\",\"User\") " ] },
+
 
     { "type": "powershell",
       "inline": [
-        "# Read-Host -Prompt \"Press any key to continue\" ## to debug" ] }
+        "# just copy gmake.exe",
+        "Copy-Item \".\\Downloads\\gmake.exe\" -Destination ${env:WinDir}\\System32" ] },
+
+    { "type": "powershell",
+      "inline": [
+        "# Create .ssh folder",
+        "New-Item -ItemType Directory -Path .\\.ssh" ] },
+
+    { "type": "file",
+      "source": "credentials/",
+      "destination": ".\\.ssh" },
+
+    { "type": "powershell",
+      "inline": [
+        "& 'C:\\Program Files\Git\\bin\\bash.exe' -c 'ssh-keyscan -t rsa github.com | tee .ssh/known_hosts' ",
+        "& git clone {{ user `NIMBUS_REPO` }}" ] },
+
+    { "type": "breakpoint",
+      "disable": false,
+      "note": "this is a breakpoint" },
+
+    { "type": "powershell",
+      "inline": [
+        "Read-Host -Prompt \"Press any key to continue\" ## to debug" ] }
 	
+  ],
+
+  "post-processors": [
+    { "type": "manifest" }
   ]
 }

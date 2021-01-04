@@ -2,11 +2,12 @@ from winrm import Protocol
 import base64
 import sys
 
-address = "10.30.176.108"
+address = "10.30.191.195"
 #transport = "plaintext"
 transport = "ntlm"
 username = "build"
-password = 'P7C[Lg),AS8|wk+'
+password = 'blF&9=Fx]Xp#k,!'
+
 protocol = "http"
 port = 5985
 
@@ -58,9 +59,11 @@ $stream.close()"""
 
 
 
-copy_text_file("V.ps1")
+#copy_text_file("V.ps1")
 #run_winrm("gsutil -m rsync gs://smurthy_cbcd_installers/packer-20201230/ .\Downloads")
-run_winrm("powershell.exe -executionPolicy bypass .\V.ps1")
+run_winrm("powershell Install-WindowsFeature -Name NFS-Client")
+#run_winrm("powershell New-ItemProperty -Path \"HKLM:\SOFTWARE\Microsoft\ClientForNFS\CurrentVersion\Default\" -Name \"AnonymousUid\" -Value \"0\" -PropertyType DWORD")
+run_winrm("powershell nfsadmin client status")
 #copy_text_file("Install-Java.bat")
 #copy_text_file("java-install.properties")
 #run_winrm(".\Install-Java.bat")
