@@ -12,7 +12,7 @@
     "SUBNETWORK":        "projects/ops-shared-vpc/regions/us-west2/subnetworks/testing-cloud-cd-us-west2",
     "GCP_PROJECT":       "flow-testing-project",
     "ZONE":              "us-west2-a",
-    "MACHINE_TYPE":      "e2-standard-8",
+    "MACHINE_TYPE":      "e2-standard-16",
     "NET_TAGS":          "cd-artemis-us-west2",
     "DISK_SIZE":         "50",
     "IMAGE_FAMILY":      "windows-2012-r2",
@@ -46,7 +46,7 @@
         "source-bucket":      "{{ user `BUCKET_NAME`   }}",
         "source-folder":      "{{ user `FOLDER_NAME`   }}",
         "purpose":            "{{ user `PURPOSE_LABEL` }}",
-        "issued":             "{{ isotime }}"
+        "issued":             "{{ isotime | clean_resource_name }}"
       },
 
       "winrm_insecure":        true,
@@ -120,16 +120,24 @@
 
     { "type": "powershell",
       "inline": [
-        "& 'C:\\Program Files\Git\\bin\\bash.exe' -c 'ssh-keyscan -t rsa github.com | tee .ssh/known_hosts' ",
+        "& 'C:\\Program Files\\Git\\bin\\bash.exe' -c 'ssh-keyscan -t rsa github.com | tee .ssh/known_hosts' ",
         "& git clone {{ user `NIMBUS_REPO` }}" ] },
 
+    { "type": "powershell",
+      "inline": [
+        "powershell Install-WindowsFeature -Name NFS-Client" ] },
+
+    { "type": "powershell",
+      "inline": [
+        "GCESysprep -NoShutdown" ] },
+
     { "type": "breakpoint",
-      "disable": false,
+      "disable": true,
       "note": "this is a breakpoint" },
 
     { "type": "powershell",
       "inline": [
-        "Read-Host -Prompt \"Press any key to continue\" ## to debug" ] }
+        "# Read-Host -Prompt \"Press any key to continue\" ## to debug" ] }
 	
   ],
 

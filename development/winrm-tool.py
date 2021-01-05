@@ -2,11 +2,11 @@ from winrm import Protocol
 import base64
 import sys
 
-address = "10.30.191.195"
+address = "10.30.176.75"
 #transport = "plaintext"
 transport = "ntlm"
 username = "build"
-password = 'blF&9=Fx]Xp#k,!'
+password = ':uVxNp=201>8\9L'
 
 protocol = "http"
 port = 5985
@@ -61,66 +61,15 @@ $stream.close()"""
 
 #copy_text_file("V.ps1")
 #run_winrm("gsutil -m rsync gs://smurthy_cbcd_installers/packer-20201230/ .\Downloads")
-run_winrm("powershell Install-WindowsFeature -Name NFS-Client")
+#run_winrm("powershell Install-WindowsFeature -Name NFS-Client")
 #run_winrm("powershell New-ItemProperty -Path \"HKLM:\SOFTWARE\Microsoft\ClientForNFS\CurrentVersion\Default\" -Name \"AnonymousUid\" -Value \"0\" -PropertyType DWORD")
-run_winrm("powershell nfsadmin client status")
+run_winrm("net use")
+run_winrm("N:\\chronic3build\\commander-git-main-full-sqlserver2017.144984-202101050600\\out\\i686_win32\\nimbus\\install\\CloudBeesFlow-10.1.0.144984.exe --installAgent --installWeb --installServer --installDatabase --installRepository --windowsServerUser build --useSameServiceAccount --overwrite --mode silent ")
+#run_winrm("net use N: \\\\10.30.228.2\\chronic3build")
+#run_winrm("net use")
+#run_winrm("dir N:\chronic3build\commander-git-main-full-sqlserver2017.144909-202012211207\out\\") #i686_win32\nimbus/install/CloudBeesFlow-2020.12.0.144909.exe")
 #copy_text_file("Install-Java.bat")
 #copy_text_file("java-install.properties")
 #run_winrm(".\Install-Java.bat")
 
 conn.close_shell(shell_id)
-
-
-
-sys.exit(0)
-# the text file we want to send
-# this could be populated by reading a file from disk instead
-# has some special characters, just to prove they won't be a problem
-text_file = """this is a multiline file
-that contains special characters such as
-"blah"
-'#@$*&&($}
-that will be written
-onto the windows box"""
-
-filename = "s1.ps1"
-with open(filename, mode='r') as file: # b is important -> binary
-        file_content = file.read()
-
-print( file_content)
-
-# first part of the powershell script
-# streamwriter is the fastest and most efficient way to write a file
-# I have found
-# notice the @", this is like a "here document" in linux
-# or like triple quotes in python and allows for multiline files
-part_1 = """$stream = [System.IO.StreamWriter] "test.cmd"
-$s = @"
-"""
-
-# second part of the powershell script
-# the "@ closes the string
-# the replace will change the linux line feed to the windows carriage return, line feed
-part_2 = """
-"@ | %{ $_.Replace("`n","`r`n") }
-$stream.WriteLine($s)
-$stream.close()"""
-
-# join the beginning of the powershell script with the text file and end of the ps script
-script = part_1 + file_content + part_2
-
-# base64 encode, utf16 little endian. required for windows
-encoded_script = base64.b64encode(script.encode("utf_16_le")).decode('utf-8')
-
-
-    
-
-run_winrm("powershell -encodedcommand %s" % (encoded_script))
-run_winrm("test.cmd")
-#run_winrm("type test.txt")
-#run_winrm("del test.txt")
-
-# always good to clean things up, doesn't hurt
-
-sys.exit(0)
-
