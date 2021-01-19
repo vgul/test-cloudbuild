@@ -15,7 +15,7 @@ Configuration InstallMSysGit {
     }
   }
 }
-        
+
 
 
 InstallMSysGit -OutputPath C:\

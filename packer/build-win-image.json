@@ -2,12 +2,12 @@
 
   "variables": {
     "USER_NAME":         "build",
+    "PURPOSE_LABEL":     "win-spec-test",
 
     "BUCKET_NAME":       "smurthy_cbcd_installers",
     "FOLDER_NAME":       "packer-20201230",
 
     "NIMBUS_REPO":       "git@github.com:electric-cloud/nimbus.git",
-    "PURPOSE_LABEL":     "win-spec-test",
 
     "SUBNETWORK":        "projects/ops-shared-vpc/regions/us-west2/subnetworks/testing-cloud-cd-us-west2",
     "GCP_PROJECT":       "flow-testing-project",
@@ -17,6 +17,10 @@
     "DISK_SIZE":         "50",
     "IMAGE_FAMILY":      "windows-2012-r2",
     "PREEMPTIBILITY":    "true",
+    "CACHE_FOLDER":      "C:\\Cache",
+    "FILESTORE":         "10.30.228.2:/chronic3build",
+    "NETWORK_DISK":      "N:",
+    "LOCAL_TMP_CACHE":   "tmp-cache-result",
 
     "GIT_SSH_KEY":       "",
 
@@ -28,8 +32,8 @@
 
   "builders": [
     {
-      "type":                    "googlecompute",
-      "communicator":            "winrm",
+      "type":                 "googlecompute",
+      "communicator":         "winrm",
 
       "machine_type":         "{{ user `MACHINE_TYPE`          }}",
       "source_image_family":  "{{ user `IMAGE_FAMILY`          }}",
@@ -42,10 +46,11 @@
       "winrm_username":       "{{ user `USER_NAME`             }}",
 
       "image_name":           "{{ user `PURPOSE_LABEL` }}-{{ isotime | clean_resource_name }}",
-      "image_labels":  { 
+      "image_labels":  {
         "source-bucket":      "{{ user `BUCKET_NAME`   }}",
         "source-folder":      "{{ user `FOLDER_NAME`   }}",
         "purpose":            "{{ user `PURPOSE_LABEL` }}",
+        "image-family":       "{{ user `IMAGE_FAMILY`  }}",
         "issued":             "{{ isotime | clean_resource_name }}"
       },
 
@@ -70,70 +75,170 @@
 
   "provisioners": [
 
-    { "type": "shell-local",
-      "command": "echo 'WinPass: {{.WinRMPassword}}' | tee /tmp/winrmIp.txt # for debug. just save" },
+    { "type":        "shell-local",
+      "command":     "echo 'WinPass: {{.WinRMPassword}}' | tee /tmp/winrmIp.txt # for debug. just save" },
 
-    { "type": "powershell",
+
+
+
+    { "type":        "powershell",
       "inline": [
-        "gsutil -m rsync gs://{{ user `BUCKET_NAME` }}/{{ user `FOLDER_NAME` }}/ .\\Downloads" ] },
+                     "gsutil -m rsync -r gs://{{ user `BUCKET_NAME` }}/{{ user `FOLDER_NAME` }}/ .\\Downloads" ] },
 
-    { "type": "powershell",
-      "script": "scripts/Install-Java.ps1" },
+    { "type":        "powershell",
+      "skip_clean":   false,
+      "script":      "scripts/Install-Java.ps1" },
 
-    { "type": "powershell",
-      "script": "scripts/Install-Maven.ps1" },
+    { "type":        "powershell",
+      "skip_clean":   false,
+      "script":      "scripts/Install-Maven.ps1" },
 
-    { "type": "powershell",
-      "script": "scripts/Install-NotepadPlusPlusDSC.ps1" },
+    { "type":        "powershell",
+      "skip_clean":   false,
+      "script":      "scripts/Install-GitDSC.ps1" },
 
-    { "type": "powershell",
-      "script": "scripts/Install-GitDSC.ps1" },
 
-    { "type": "powershell",
-      "script": "scripts/Install-ChromeDSC.ps1" },
+    { "type":        "powershell",
+      "inline": [    "## Folder for installer, maven, etc logs and stuffs",
+                     "New-Item -ItemType Directory -Path {{ user `CACHE_FOLDER` }}" ] },
 
-    { "type": "powershell",
-      "script": "scripts/Install-VimDSC.ps1" },
 
-    { "type": "powershell",
-      "inline": [ "# GCESysprep -no_shutdown ## some preparation ??" ] },
+    { "type":        "file",
+      "source":      "scafold/",
+      "destination": ".\\" },
 
-    { "type": "powershell",
+
+    { "type":        "powershell",
       "inline": [
-        "# reload env vars",
-        "# $env:Path = [System.Environment]::GetEnvironmentVariable(\"Path\",\"Machine\") + \";\" + [System.Environment]::GetEnvironmentVariable(\"Path\",\"User\") " ] },
+        "## Fix for same packge issue",
+        "New-Item -ItemType Directory -Path .\\.m2\\repository\\com\\google\\rfc2445\\" ] },
+
+    { "type":        "file",
+      "source":      "maven-fix/rfc2445/",
+      "destination": ".\\.m2\\repository\\com\\google\\rfc2445\\" },
+
+    { "type":        "file",
+      "source":      "maven-credentials/",
+      "destination": ".\\.m2" },
 
 
-    { "type": "powershell",
-      "inline": [
-        "# just copy gmake.exe",
-        "Copy-Item \".\\Downloads\\gmake.exe\" -Destination ${env:WinDir}\\System32" ] },
+    { "type":        "powershell",
+      "inline": [    "# Create .ssh folder",
+                     "New-Item -ItemType Directory -Path .\\.ssh" ] },
 
-    { "type": "powershell",
-      "inline": [
-        "# Create .ssh folder",
-        "New-Item -ItemType Directory -Path .\\.ssh" ] },
 
-    { "type": "file",
-      "source": "credentials/",
+    { "type":        "file",
+      "source":      "credentials/",
       "destination": ".\\.ssh" },
 
-    { "type": "powershell",
+    { "type":        "powershell",
       "inline": [
         "& 'C:\\Program Files\\Git\\bin\\bash.exe' -c 'ssh-keyscan -t rsa github.com | tee .ssh/known_hosts' ",
-        "& git clone {{ user `NIMBUS_REPO` }}" ] },
+        "& git clone {{ user `NIMBUS_REPO` }} # we clone current 'master'" ] },
 
-    { "type": "powershell",
-      "inline": [
-        "powershell Install-WindowsFeature -Name NFS-Client" ] },
+    { "type":        "powershell",
+      "inline": [    "# https://willhaley.com/blog/script-install-cygwin-windows/" ] },
 
-    { "type": "powershell",
+
+    { "type":        "powershell",
+      "valid_exit_codes": [ 0, 1 ],
       "inline": [
-        "GCESysprep -NoShutdown" ] },
+        "Set-Location -Path  .\\nimbus",
+        "${env:MAVEN_OPTS}  = \"-ea -Xss1536k -Xmx8g\"",
+        "${env:MAVEN_OPTS} += \" --add-opens=java.base/java.io=ALL-UNNAMED\"",
+        "${env:MAVEN_OPTS} += \" --add-opens=java.base/java.lang.reflect=ALL-UNNAMED\"",
+        "${env:MAVEN_OPTS} += \" --add-opens=java.base/java.lang=ALL-UNNAMED\"",
+        "${env:MAVEN_OPTS} += \" --add-opens=java.base/java.net=ALL-UNNAMED\"",
+        "${env:MAVEN_OPTS} += \" --add-opens=java.base/java.util.concurrent=ALL-UNNAMED\"",
+        "${env:MAVEN_OPTS} += \" --add-opens=java.base/java.util=ALL-UNNAMED\"",
+        "${env:MAVEN_OPTS} += \" --add-opens=java.base/sun.net=ALL-UNNAMED\"",
+        "${env:MAVEN_OPTS} += \" --add-opens=java.management/com.sun.jmx.mbeanserver=ALL-UNNAMED\"",
+        "${env:MAVEN_OPTS} += \" --add-opens=java.management/java.lang.management=ALL-UNNAMED\"",
+        "${env:MAVEN_OPTS} += \" --add-opens=java.management/sun.management=ALL-UNNAMED\"",
+        "echo \"MAVEN_OPTS=${env:MAVEN_OPTS}\"",
+        "mvn -T 1C --batch-mode clean install -DskipTests | Tee-Object {{ user `CACHE_FOLDER` }}\\mvn-first-install.log" ] },
+
+
+    { "type":        "shell-local",
+      "inline": [    "rm -vrf   {{ user `LOCAL_TMP_CACHE` }}",
+                     "mkdir -vp {{ user `LOCAL_TMP_CACHE` }}" ] },
+
+    { "type":        "file",
+      "direction":   "download",
+      "source":      "{{ user `CACHE_FOLDER` }}",
+      "destination": "{{ user `LOCAL_TMP_CACHE` }}/" },
+
+
+    { "type":        "breakpoint",
+      "disable":      false,
+      "note":        "this is a breakpoint after mvn command" },
+
+
+
+    { "type":        "powershell",
+      "skip_clean":   false,
+      "script":      "scripts/Install-NotepadPlusPlusDSC.ps1" },
+
+    { "type":        "powershell",
+      "skip_clean":   false,
+      "script":      "scripts/Install-ChromeDSC.ps1" },
+
+    { "type":        "powershell",
+      "skip_clean":   false,
+      "script":      "scripts/Install-VimDSC.ps1" },
+
+    { "type":        "powershell",
+      "skip_clean":   false,
+      "inline": [    "## just copy gmake.exe",
+                     "Copy-Item \".\\Downloads\\gmake.exe\" -Destination ${env:WinDir}\\System32" ] },
+
+    { "type":        "powershell",
+      "skip_clean":   false,
+      "script":      "scripts/Install-Cygwin.ps1" },
+
+    { "type":        "powershell",
+      "skip_clean":   false,
+      "script":      "scripts/Install-Wget.ps1" },
+
+    { "type":        "powershell",
+      "skip_clean":   false,
+      "script":      "scripts/Install-TimeThis.ps1" },
+
+    { "type":        "powershell",
+      "skip_clean":   false,
+      "script":      "scripts/Install-WinSCP.ps1" },
+
+
+    { "type":        "powershell",
+      "inline": [    "# storing useful utilities like rsync.exe",
+                     "New-Item  -Path \"C:\\\" -Name \"Bin\" -ItemType \"directory\"",
+                     "Move-Item -Path \".\\Downloads\\cwrsync_6.2.1_x64_free\\\" -Destination \"C:\\Bin\\\"" ] },
+
+
+    { "type":        "powershell",
+      "skip_clean":   false,
+      "inline": [    "powershell Install-WindowsFeature -Name NFS-Client" ] },
+
+
+    { "type": "windows-restart",
+      "restart_check_command": "powershell -command \"& {Write-Output 'restarted.'}\"" },
+
+
+    { "type":        "windows-shell",
+      "inline": [
+        "powershell New-ItemProperty -Path \"HKLM:\\SOFTWARE\\Microsoft\\ClientForNFS\\CurrentVersion\\Default\" -Name \"AnonymousUid\" -Value \"-2\" -PropertyType DWORD",
+        "powershell New-ItemProperty -Path \"HKLM:\\SOFTWARE\\Microsoft\\ClientForNFS\\CurrentVersion\\Default\" -Name \"AnonymousGid\" -Value  \"0\" -PropertyType DWORD",
+        "@rem nfsadmin client stop",
+        "@rem nfsadmin client start" ] },
+
+    { "type":        "powershell",
+      "skip_clean":   false,
+      "inline": [    "GCESysprep -NoShutdown" ] },
+
 
     { "type": "breakpoint",
       "disable": true,
-      "note": "this is a breakpoint" },
+      "note": "this is a final breakpoint" },
 
     { "type": "powershell",
       "inline": [
@@ -141,7 +246,26 @@
 	
   ],
 
+
+
+
+
   "post-processors": [
-    { "type": "manifest" }
+
+    { "type":        "manifest",
+      "custom_data": {
+        "key":       "my-value" } },
+
+    { "type":        "shell-local",
+      "inline": [
+        "NAME=$( cat packer-manifest.json | jq -r  '.builds | sort_by(.build_time)[-1] | .artifact_id' )",
+        "echo 'Winrmpass={{ build `Password` }}'",
+        "mkdir -vp results/${NAME}",
+        "echo '{{.WinRMPassword}}' ",
+        "echo '{{.WinRMPassword}}' > results/${NAME}/password.pure",
+        "cat packer-manifest.json | jq -r  '.builds | sort_by(.build_time)[-1]' > results/${NAME}/manifest.json",
+        "cp -iar {{ user `LOCAL_TMP_CACHE` }} results/${NAME}",
+        "gcloud compute images describe ${NAME}" ] }
+
   ]
 }

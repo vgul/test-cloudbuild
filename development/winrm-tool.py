@@ -2,11 +2,11 @@ from winrm import Protocol
 import base64
 import sys
 
-address = "10.30.176.75"
+address = "10.30.176.16"
 #transport = "plaintext"
 transport = "ntlm"
 username = "build"
-password = ':uVxNp=201>8\9L'
+password = '{%KIOU/_FnmrQMV'
 
 protocol = "http"
 port = 5985
@@ -59,12 +59,16 @@ $stream.close()"""
 
 
 
-#copy_text_file("V.ps1")
+copy_text_file("Install-Cygwin.ps1")
+#copy_text_file("re-read-path.ps1")
+#copy_text_file("Install-WinSCP.ps1")
+run_winrm("powershell -executionpolicy bypass .\Install-Cygwin.ps1")
 #run_winrm("gsutil -m rsync gs://smurthy_cbcd_installers/packer-20201230/ .\Downloads")
 #run_winrm("powershell Install-WindowsFeature -Name NFS-Client")
 #run_winrm("powershell New-ItemProperty -Path \"HKLM:\SOFTWARE\Microsoft\ClientForNFS\CurrentVersion\Default\" -Name \"AnonymousUid\" -Value \"0\" -PropertyType DWORD")
-run_winrm("net use")
-run_winrm("N:\\chronic3build\\commander-git-main-full-sqlserver2017.144984-202101050600\\out\\i686_win32\\nimbus\\install\\CloudBeesFlow-10.1.0.144984.exe --installAgent --installWeb --installServer --installDatabase --installRepository --windowsServerUser build --useSameServiceAccount --overwrite --mode silent ")
+#run_winrm("powershell .\s.ps1")
+#run_winrm("net use")
+#run_winrm("N:\\chronic3build\\commander-git-main-full-sqlserver2017.144984-202101050600\\out\\i686_win32\\nimbus\\install\\CloudBeesFlow-10.1.0.144984.exe --installAgent --installWeb --installServer --installDatabase --installRepository --windowsServerUser build --useSameServiceAccount --overwrite --mode silent ")
 #run_winrm("net use N: \\\\10.30.228.2\\chronic3build")
 #run_winrm("net use")
 #run_winrm("dir N:\chronic3build\commander-git-main-full-sqlserver2017.144909-202012211207\out\\") #i686_win32\nimbus/install/CloudBeesFlow-2020.12.0.144909.exe")
