@@ -1,21 +1,25 @@
 
+exit
+
+## Packages list: https://cygwin.com/packages/package_list.html#o
+## https://github.com/transcode-open/apt-cyg
 Write-Host "Installing Cygwin"
 
 
 & .\Downloads\cygwin\setup-x86_64.exe `
     --quiet-mode `
-    --site https://mirrors.kernel.org/sourceware/ `
+    --site https://mirrors.kernel.org/sourceware/cygwin/ `
     --root C:\cygwin64 `
     --packages `
-        bzip2,`
-        make,`
-        dos2unix,`
-        unzip,`
-        wget,`
-        curl,`
-        nano,`
-        vim,`
-        git `
+bzip2,`
+make,`
+dos2unix,`
+unzip,`
+wget,`
+curl,`
+nano,`
+vim,`
+git,openssh `
     *>&1 | Out-Default
 
 if ($LastExitCode -ne 0) {

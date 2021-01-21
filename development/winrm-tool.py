@@ -2,11 +2,11 @@ from winrm import Protocol
 import base64
 import sys
 
-address = "10.30.176.16"
+address = "10.30.176.33"
 #transport = "plaintext"
 transport = "ntlm"
 username = "build"
-password = '{%KIOU/_FnmrQMV'
+password = '9$?2js?X81vnM{h'
 
 protocol = "http"
 port = 5985
@@ -59,10 +59,10 @@ $stream.close()"""
 
 
 
-copy_text_file("Install-Cygwin.ps1")
+copy_text_file("batch-03.ps1")
 #copy_text_file("re-read-path.ps1")
 #copy_text_file("Install-WinSCP.ps1")
-run_winrm("powershell -executionpolicy bypass .\Install-Cygwin.ps1")
+run_winrm("powershell -ExecutionPolicy bypass .\\batch-03.ps1")
 #run_winrm("gsutil -m rsync gs://smurthy_cbcd_installers/packer-20201230/ .\Downloads")
 #run_winrm("powershell Install-WindowsFeature -Name NFS-Client")
 #run_winrm("powershell New-ItemProperty -Path \"HKLM:\SOFTWARE\Microsoft\ClientForNFS\CurrentVersion\Default\" -Name \"AnonymousUid\" -Value \"0\" -PropertyType DWORD")

@@ -21,10 +21,11 @@
     "FILESTORE":         "10.30.228.2:/chronic3build",
     "NETWORK_DISK":      "N:",
     "LOCAL_TMP_CACHE":   "tmp-cache-result",
-
+    "INSTANCE_PASSWORD": "Mbimp,vm",
     "GIT_SSH_KEY":       "",
 
     "USE_SSL":           "true",
+    "FIREWALL_SSH":      "& netsh advfirewall firewall add rule name=\"Open Port 22\" dir=in action=allow protocol=TCP localport=22",
     "DEBUG_INIT_SCRIPT2": "& winrm set winrm/config/service @{AllowUnencrypted=\"true\"} & netsh advfirewall firewall add rule name=\"Open Port 5985\" dir=in action=allow protocol=TCP localport=5985",
     "DEBUG_INIT_SCRIPT": ""
   },
@@ -58,11 +59,10 @@
       "omit_external_ip":      true,
       "use_internal_ip":       true,
       "preemptible":          "{{ user `PREEMPTIBILITY` }}",
-
       "winrm_use_ssl":        "{{ user `USE_SSL`     }}",
 
       "metadata": {
-        "windows-startup-script-cmd": "winrm quickconfig -quiet & net user /add {{ user `USER_NAME` }}  & net localgroup administrators {{ user `USER_NAME` }} /add & winrm set winrm/config/service/auth @{Basic=\"true\"} {{ user `DEBUG_INIT_SCRIPT` }}"
+        "windows-startup-script-cmd": "winrm quickconfig -quiet & net user /add {{ user `USER_NAME` }}  & net localgroup administrators {{ user `USER_NAME` }} /add & winrm set winrm/config/service/auth @{Basic=\"true\"} {{ user `FIREWALL_SSH` }} {{ user `DEBUG_INIT_SCRIPT` }}"
       }
 
     }
@@ -79,11 +79,12 @@
       "command":     "echo 'WinPass: {{.WinRMPassword}}' | tee /tmp/winrmIp.txt # for debug. just save" },
 
 
+    { "type":        "powershell",
+      "inline": [    "# net user build {{ user `INSTANCE_PASSWORD` }} " ] },
 
 
     { "type":        "powershell",
-      "inline": [
-                     "gsutil -m rsync -r gs://{{ user `BUCKET_NAME` }}/{{ user `FOLDER_NAME` }}/ .\\Downloads" ] },
+      "inline": [    "gsutil -m rsync -r gs://{{ user `BUCKET_NAME` }}/{{ user `FOLDER_NAME` }}/ .\\Downloads" ] },
 
     { "type":        "powershell",
       "skip_clean":   false,
@@ -101,6 +102,10 @@
     { "type":        "powershell",
       "inline": [    "## Folder for installer, maven, etc logs and stuffs",
                      "New-Item -ItemType Directory -Path {{ user `CACHE_FOLDER` }}" ] },
+
+
+    { "type":        "shell-local",
+      "inline": [    "cp -vr scripts/* scafold/" ] },
 
 
     { "type":        "file",
@@ -134,7 +139,7 @@
     { "type":        "powershell",
       "inline": [
         "& 'C:\\Program Files\\Git\\bin\\bash.exe' -c 'ssh-keyscan -t rsa github.com | tee .ssh/known_hosts' ",
-        "& git clone {{ user `NIMBUS_REPO` }} # we clone current 'master'" ] },
+        "& echo git clone {{ user `NIMBUS_REPO` }} # we clone current 'master'" ] },
 
     { "type":        "powershell",
       "inline": [    "# https://willhaley.com/blog/script-install-cygwin-windows/" ] },
@@ -156,23 +161,15 @@
         "${env:MAVEN_OPTS} += \" --add-opens=java.management/java.lang.management=ALL-UNNAMED\"",
         "${env:MAVEN_OPTS} += \" --add-opens=java.management/sun.management=ALL-UNNAMED\"",
         "echo \"MAVEN_OPTS=${env:MAVEN_OPTS}\"",
-        "mvn -T 1C --batch-mode clean install -DskipTests | Tee-Object {{ user `CACHE_FOLDER` }}\\mvn-first-install.log" ] },
+        "echo mvn -T 1C --batch-mode clean install -DskipTests | Tee-Object {{ user `CACHE_FOLDER` }}\\mvn-first-install.log" ] },
 
 
-    { "type":        "shell-local",
-      "inline": [    "rm -vrf   {{ user `LOCAL_TMP_CACHE` }}",
-                     "mkdir -vp {{ user `LOCAL_TMP_CACHE` }}" ] },
 
-    { "type":        "file",
-      "direction":   "download",
-      "source":      "{{ user `CACHE_FOLDER` }}",
-      "destination": "{{ user `LOCAL_TMP_CACHE` }}/" },
 
 
     { "type":        "breakpoint",
       "disable":      false,
       "note":        "this is a breakpoint after mvn command" },
-
 
 
     { "type":        "powershell",
@@ -194,10 +191,6 @@
 
     { "type":        "powershell",
       "skip_clean":   false,
-      "script":      "scripts/Install-Cygwin.ps1" },
-
-    { "type":        "powershell",
-      "skip_clean":   false,
       "script":      "scripts/Install-Wget.ps1" },
 
     { "type":        "powershell",
@@ -214,31 +207,84 @@
                      "New-Item  -Path \"C:\\\" -Name \"Bin\" -ItemType \"directory\"",
                      "Move-Item -Path \".\\Downloads\\cwrsync_6.2.1_x64_free\\\" -Destination \"C:\\Bin\\\"" ] },
 
+    { "type":        "powershell",
+      "skip_clean":   false,
+      "script":      "scripts/Install-Cygwin.ps1" },
 
     { "type":        "powershell",
       "skip_clean":   false,
-      "inline": [    "powershell Install-WindowsFeature -Name NFS-Client" ] },
+      "inline": [    "## cygwin installation log",
+                     "Copy-Item \"C:\\cygwin64\\var\\log\\\" -Destination \"{{ user `CACHE_FOLDER` }}\"" ] },
 
+
+    { "type":        "shell-local",
+      "inline": [    "rm -vrf   {{ user `LOCAL_TMP_CACHE` }}",
+                     "mkdir -vp {{ user `LOCAL_TMP_CACHE` }}" ] },
+
+    { "type":        "file",
+      "direction":   "download",
+      "source":      "{{ user `CACHE_FOLDER` }}",
+      "destination": "{{ user `LOCAL_TMP_CACHE` }}/" },
+
+
+    { "type":        "powershell",
+      "skip_clean":   false,
+      "inline": [    "#powershell Install-WindowsFeature -Name NFS-Client" ] },
+
+    { "type":        "powershell",
+      "skip_clean":   false,
+      "script":      "scripts/batch-01.ps1" },
 
     { "type": "windows-restart",
       "restart_check_command": "powershell -command \"& {Write-Output 'restarted.'}\"" },
 
 
+    { "type":        "powershell",
+      "skip_clean":   true,
+      "script":      "scripts/batch-02.ps1" },
+
+    { "type":        "powershell",
+      "skip_clean":   false,
+      "inline": [    "dir C:\\ProgramData\\chocolatey\\logs\\" ] },
+
+
+    { "type":        "file",
+      "direction":   "download",
+      "source":      "C:\\ProgramData\\chocolatey\\logs",
+      "destination": "{{ user `LOCAL_TMP_CACHE` }}/" },
+
+    { "type":        "powershell",
+      "skip_clean":   true,
+      "script":      "scripts/batch-03.ps1" },
+
+
+    { "type":        "powershell",
+      "skip_clean":   true,
+      "script":      "scripts/batch-04.ps1" },
+
+
+    { "type":        "powershell",
+      "skip_clean":   true,
+      "script":      "scripts/batch-05.ps1" },
+
     { "type":        "windows-shell",
       "inline": [
-        "powershell New-ItemProperty -Path \"HKLM:\\SOFTWARE\\Microsoft\\ClientForNFS\\CurrentVersion\\Default\" -Name \"AnonymousUid\" -Value \"-2\" -PropertyType DWORD",
-        "powershell New-ItemProperty -Path \"HKLM:\\SOFTWARE\\Microsoft\\ClientForNFS\\CurrentVersion\\Default\" -Name \"AnonymousGid\" -Value  \"0\" -PropertyType DWORD",
+        "@rem powershell New-ItemProperty -Path \"HKLM:\\SOFTWARE\\Microsoft\\ClientForNFS\\CurrentVersion\\Default\" -Name \"AnonymousUid\" -Value \"-2\" -PropertyType DWORD",
+        "@rem powershell New-ItemProperty -Path \"HKLM:\\SOFTWARE\\Microsoft\\ClientForNFS\\CurrentVersion\\Default\" -Name \"AnonymousGid\" -Value  \"0\" -PropertyType DWORD",
         "@rem nfsadmin client stop",
-        "@rem nfsadmin client start" ] },
+        "@rem nfsadmin client start",
+        "@rem mount {{ user `FILESTORE` }} {{ user `NETWORK_DISK` }} " ] },
+
+    { "type": "breakpoint",
+      "disable": false,
+      "note": "this is a final breakpoint (before GCESysprep)" },
+
 
     { "type":        "powershell",
       "skip_clean":   false,
       "inline": [    "GCESysprep -NoShutdown" ] },
 
 
-    { "type": "breakpoint",
-      "disable": true,
-      "note": "this is a final breakpoint" },
 
     { "type": "powershell",
       "inline": [
